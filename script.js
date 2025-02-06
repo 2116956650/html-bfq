@@ -9,10 +9,11 @@ const durationElement = document.getElementById('duration');
 const volumeSlider = document.getElementById('volumeSlider');
 const muteBtn = document.getElementById('muteBtn');
 const fullscreenBtn = document.getElementById('fullscreenBtn');
-const speedBtn = document.getElementById('speedBtn');
+const loadingSpinner = document.getElementById('loadingSpinner');
 const volumePercentage = document.querySelector('.volume-percentage');
 
 let controlsTimeout;
+let volumeHideTimeout;
 
 // 初始化显示控制栏
 mainControls.classList.remove('hidden');
@@ -61,33 +62,35 @@ volumeSlider.addEventListener('input', (e) => {
     video.volume = e.target.value;
     video.muted = false;
     updateVolumeIcon();
-    volumePercentage.textContent = `${Math.round(video.volume * 100)}%`;
+    showVolumePercentage(e.target.value);
 });
 
 muteBtn.addEventListener('click', () => {
     video.muted = !video.muted;
     updateVolumeIcon();
-    volumePercentage.textContent = video.muted ? '0%' : `${Math.round(video.volume * 100)}%`;
+    showVolumePercentage(video.muted ? 0 : video.volume);
     resetControlsTimer();
 });
+
+// 显示音量百分比
+function showVolumePercentage(value) {
+    const percentage = Math.round(value * 100);
+    volumePercentage.textContent = `${percentage}%`;
+    volumePercentage.style.opacity = '1';
+    clearTimeout(volumeHideTimeout);
+    volumeHideTimeout = setTimeout(() => {
+        volumePercentage.style.opacity = '0';
+    }, 1000);
+}
 
 // 全屏控制
 fullscreenBtn.addEventListener('click', () => {
     if (!document.fullscreenElement) {
-        playerContainer.requestFullscreen();
+        video.parentElement.requestFullscreen();
     } else {
         document.exitFullscreen();
     }
     resetControlsTimer();
-});
-
-// 倍数播放控制
-const speeds = [1, 1.5, 2];
-let speedIndex = 0;
-speedBtn.addEventListener('click', () => {
-    speedIndex = (speedIndex + 1) % speeds.length;
-    video.playbackRate = speeds[speedIndex];
-    speedBtn.textContent = `${speeds[speedIndex]}x`;
 });
 
 // 工具函数
@@ -117,6 +120,12 @@ video.addEventListener('pause', updatePlayButton);
 video.addEventListener('volumechange', updateVolumeIcon);
 video.addEventListener('loadedmetadata', () => {
     durationElement.textContent = formatTime(video.duration);
+});
+video.addEventListener('waiting', () => {
+    loadingSpinner.style.opacity = '1';
+});
+video.addEventListener('playing', () => {
+    loadingSpinner.style.opacity = '0';
 });
 
 // 初始化计时器
